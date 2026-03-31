@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aether | Perpetual Memory Wall</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Instrument+Serif:italic&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.5);
+            --bg: #030712;
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --text: #f9fafb;
+            --text-muted: #9ca3af;
+            --border: rgba(255, 255, 255, 0.1);
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            --danger: #ef4444;
+        }
+
+        [data-theme="light"] {
+            --bg: #f8fafc;
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --border: rgba(0, 0, 0, 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            transition: background-color 0.5s ease;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Interactive Particle Background */
+        #bg-canvas {
+            position: fixed;
+            top: 0; left: 0; z-index: -1;
+            filter: blur(2px);
+        }
+
+        /* Custom Cursor Follower */
+        #cursor {
+            width: 20px; height: 20px;
+            background: var(--primary);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            mix-blend-mode: difference;
+            transition: transform 0.15s ease-out;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Navigation / Theme Toggle */
+        nav {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 2rem 10%;
+            backdrop-filter: blur(10px);
+            position: sticky; top: 0; z-index: 100;
+        }
+
+        .brand { font-weight: 700; font-size: 1.5rem; letter-spacing: -1px; cursor: pointer; }
+
+        .theme-toggle {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-family: inherit;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+        
+        .theme-toggle:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        /* Hero Section */
+        header { text-align: center; padding: 10vh 20px; }
+        
+        h1 { 
+            font-family: 'Instrument Serif', serif; 
+            font-size: clamp(3rem, 10vw, 7rem); 
+            line-height: 0.9;
+            margin-bottom: 20px;
+        }
+
+        /* Advanced Input System */
+        .input-portal {
+            max-width: 600px; margin: 0 auto 50px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 40px;
+            border-radius: 40px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 50px 100px -20px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease;
+        }
+
+        .input-field {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--border);
+            width: 100%;
+            padding: 15px 0;
+            color: var(--text);
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            outline: none;
+            transition: 0.3s;
+            font-family: inherit;
+        }
+
+        .input-field:focus { border-color: var(--primary); }
+
+        /* File Upload System */
+        .file-upload-wrapper {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .hidden-file-input { display: none; }
+
+        .file-upload-label {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 10px; width: 100%; padding: 15px; background: rgba(255, 255, 255, 0.03);
+            border: 1px dashed var(--border); border-radius: 15px; color: var(--text-muted);
+            transition: all 0.3s ease; cursor: pointer;
+        }
+
+        .file-upload-label:hover {
+            background: rgba(255, 255, 255, 0.08); border-color: var(--primary); color: var(--primary);
+        }
+
+        .file-upload-label svg { width: 20px; height: 20px; fill: currentColor; }
+
+        /* Live Input Preview Area */
+        .preview-wrapper {
+            max-width: 600px; margin: 0 auto 100px; display: none; 
+        }
+        
+        .preview-header {
+            text-align: center; color: var(--primary); font-weight: 700;
+            letter-spacing: 2px; margin-bottom: 15px; font-size: 0.9rem;
+        }
+
+        .btn-send {
+            background: var(--accent-gradient); color: white; border: none;
+            padding: 15px 40px; border-radius: 50px; font-weight: 700;
+            width: 100%; transition: 0.3s; box-shadow: 0 10px 20px var(--primary-glow);
+            font-family: inherit; letter-spacing: 1px; margin-top: 15px; cursor: pointer;
+        }
+
+        .btn-send:hover { transform: translateY(-5px) scale(1.02); }
+
+        /* Masonry Grid */
+        .wall {
+            columns: 4 250px; column-gap: 30px; padding: 0 5% 100px;
+            max-width: 1800px; margin: 0 auto;
+        }
+
+        .memory-card {
+            break-inside: avoid; background: var(--card-bg);
+            border: 1px solid var(--border); padding: 25px;
+            border-radius: 24px; margin-bottom: 30px; position: relative;
+            overflow: hidden; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; flex-direction: column; gap: 15px; cursor: pointer;
+        }
+
+        .memory-card:hover {
+            transform: translateY(-10px); border-color: var(--primary);
+            box-shadow: 0 30px 60px -12px rgba(0,0,0,0.3);
+        }
+
+        /* Delete Button */
+        .btn-delete {
+            position: absolute; top: 15px; right: 15px;
+            width: 32px; height: 32px; border-radius: 50%;
+            background: rgba(239, 68, 68, 0.15); color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; font-weight: bold; cursor: pointer;
+            opacity: 0; pointer-events: none; transition: all 0.3s ease; z-index: 10;
+        }
+
+        .memory-card:hover .btn-delete { opacity: 1; pointer-events: auto; }
+        .btn-delete:hover { background: var(--danger); color: white; transform: scale(1.1); }
+
+        .memory-image {
+            width: 100%; border-radius: 12px; object-fit: cover;
+            max-height: 300px; border: 1px solid var(--border); display: none; 
+        }
+
+        .card-text { font-size: 1.1rem; line-height: 1.6; position: relative; z-index: 1; font-style: italic; }
+        
+        .card-footer { 
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.8rem; border-top: 1px solid var(--border); padding-top: 15px; margin-top: auto;
+        }
+
+        /* Full Screen Modal */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px);
+            z-index: 99999; justify-content: center; align-items: center;
+            padding: 20px; opacity: 0; transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active { display: flex; opacity: 1; }
+
+        .modal-content {
+            background: var(--card-bg); border: 1px solid var(--border);
+            border-radius: 24px; padding: 40px; max-width: 800px; width: 100%;
+            max-height: 90vh; overflow-y: auto; position: relative;
+            transform: scale(0.95); transition: transform 0.3s ease;
+            display: flex; flex-direction: column; gap: 20px;
+        }
+
+        .modal-overlay.active .modal-content { transform: scale(1); }
+
+        .modal-close {
+            position: absolute; top: 20px; right: 20px; background: none;
+            border: none; color: var(--text-muted); font-size: 24px;
+            transition: 0.3s; z-index: 10; cursor: pointer;
+        }
+
+        .modal-close:hover { color: var(--text); transform: rotate(90deg); }
+
+        .modal-image-full { width: 100%; max-height: 60vh; object-fit: contain; border-radius: 12px; display: none; }
+        .modal-text-full { font-size: 1.5rem; line-height: 1.6; font-style: italic; }
+
+        /* Login Screen Styles & App Container */
+        #login-section {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            min-height: 100vh; padding: 20px; z-index: 50; position: relative;
+        }
+
+        #main-app {
+            display: none; /* Hidden until logged in */
+            opacity: 0;
+            animation: fadeIn 1s forwards;
+        }
+
+        /* Animations */
+        @keyframes reveal {
+            from { opacity: 0; transform: translateY(30px) scale(0.9); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .animate-in { animation: reveal 0.8s cubic-bezier(0.2, 1, 0.3, 1) forwards; }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            .wall { columns: 2 200px; }
+            .input-portal, .preview-wrapper { margin: 0 20px 50px; padding: 25px;}
+            .btn-delete { opacity: 1; pointer-events: auto; background: rgba(239, 68, 68, 0.8); color: white; }
+        }
+
+        @media (max-width: 480px) {
+            .wall { columns: 1 auto; }
+            .modal-content { padding: 25px; }
+            .modal-text-full { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <canvas id="bg-canvas"></canvas>
+    <div id="cursor"></div>
+
+    <div id="login-section">
+        <header style="padding: 0; margin-bottom: 40px;">
+            <p style="color:var(--primary); font-weight:700; letter-spacing: 5px;">SYSTEM ACCESS</p>
+            <h1>Enter <br> <i>The Aether.</i></h1>
+        </header>
+        <div class="input-portal" style="margin: 0; width: 100%; max-width: 450px;">
+            <input type="text" id="login-username" class="input-field" placeholder="Username" autocomplete="off">
+            <input type="password" id="login-password" class="input-field" placeholder="Passcode" autocomplete="off">
+            <button class="btn-send" onclick="performLogin()">AUTHENTICATE</button>
+        </div>
+    </div>
+
+    <div id="main-app">
+        <nav>
+            <div class="brand">AETHER // MEMORY</div>
+            <button class="theme-toggle" onclick="toggleTheme()">SWITCH ATMOSPHERE</button>
+        </nav>
+
+        <header>
+            <p style="color:var(--primary); font-weight:700; letter-spacing: 5px;">COLLECTIVE CONSCIOUSNESS</p>
+            <h1>Every Moment <br> <i>Stored Forever.</i></h1>
+        </header>
+
+        <div class="input-portal">
+            <input type="text" id="name" class="input-field" placeholder="Identified As..." autocomplete="off">
+            <textarea id="message" class="input-field" placeholder="Transfer your memory to the ether..." style="height: 100px; resize: none;"></textarea>
+            
+            <div class="file-upload-wrapper">
+                <input type="file" id="file-input" class="hidden-file-input" accept="image/*">
+                <label for="file-input" class="file-upload-label" id="file-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                    </svg>
+                    <span id="file-name-display">Attach Visual Fragment</span>
+                </label>
+            </div>
+
+            <button class="btn-send" onclick="addMemory()">UPLOAD MEMORY</button>
+        </div>
+
+        <div class="preview-wrapper" id="preview-section">
+            <div class="preview-header">LIVE PREVIEW</div>
+            <div class="memory-card" style="margin-bottom: 0;">
+                <img id="preview-img" src="" class="memory-image" alt="Preview Segment">
+                <div class="card-text" id="preview-text"></div>
+                <div class="card-footer">
+                    <span style="font-weight:700; color: var(--primary);" id="preview-name">@ANONYMOUS</span>
+                    <span style="opacity:0.5; font-family: monospace;" id="preview-date">TIME</span>
+                </div>
+            </div>
+        </div>
+
+        <main class="wall" id="wall"></main>
+    </div>
+
+    <div class="modal-overlay" id="full-modal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeModal(event)">✕</button>
+            <img id="modal-img-full" src="" class="modal-image-full" alt="Full Segment">
+            <div class="modal-text-full" id="modal-text-full"></div>
+            <div class="card-footer" style="margin-top: 0;">
+                <span style="font-weight:700; color: var(--primary); font-size: 1.1rem;" id="modal-name-full"></span>
+                <span style="opacity:0.5; font-family: monospace;" id="modal-date-full"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Particle Background System
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function initCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 1;
+                this.speedX = Math.random() * 0.5 - 0.25;
+                this.speedY = Math.random() * 0.5 - 0.25;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y > canvas.height) this.y = 0;
+            }
+            draw() {
+                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary');
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function animateBg() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animateBg);
+        }
+
+        for(let i=0; i<100; i++) particles.push(new Particle());
+        window.addEventListener('resize', initCanvas);
+        initCanvas();
+        animateBg();
+
+        // Custom Cursor Follower
+        const cursor = document.getElementById('cursor');
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+        });
+
+        // Theme Management
+        function toggleTheme() {
+            const body = document.body;
+            const current = body.getAttribute('data-theme');
+            body.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+        }
+
+        // ==================== LOGIN LOGIC ====================
+        function performLogin() {
+            const user = document.getElementById('login-username').value.trim();
+            const pass = document.getElementById('login-password').value.trim();
+
+            if(!user || !pass) {
+                alert("Please provide both a Username and Passcode to enter.");
+                return;
+            }
+
+            // Hide the login screen, fade in the main app
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('main-app').style.display = 'block';
+
+            // Auto-fill the memory form identity with the logged-in username
+            document.getElementById('name').value = user;
+
+            // Trigger a resize event to ensure Masonry grid calculates correctly
+            window.dispatchEvent(new Event('resize'));
+        }
+
+        // Add "Enter Key" support for login
+        document.getElementById('login-password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') performLogin();
+        });
+
+
+        // ==================== MAIN APP LOGIC ====================
+        let memories = JSON.parse(localStorage.getItem('aether_memories')) || [];
+        memories.forEach(m => { if (!m.id) m.id = Date.now() + Math.random(); });
+        
+        let currentFileDataUrl = null;
+        
+        const fileInput = document.getElementById('file-input');
+        const fileNameDisplay = document.getElementById('file-name-display');
+        const nameInput = document.getElementById('name');
+        const messageInput = document.getElementById('message');
+        const previewSection = document.getElementById('preview-section');
+        const fullModal = document.getElementById('full-modal');
+
+        function getCurrentDateTime() {
+            const now = new Date();
+            return now.toLocaleDateString(undefined, {
+                year: 'numeric', month: 'short', day: 'numeric', 
+                hour: '2-digit', minute:'2-digit', second:'2-digit'
+            });
+        }
+
+        function updatePreview() {
+            const name = nameInput.value.trim();
+            const text = messageInput.value.trim();
+            
+            if(name || text || currentFileDataUrl) {
+                previewSection.style.display = 'block';
+                document.getElementById('preview-name').textContent = name ? `@${name.toUpperCase()}` : '@ANONYMOUS';
+                document.getElementById('preview-text').innerHTML = text ? `"${text}"` : '';
+                document.getElementById('preview-date').textContent = getCurrentDateTime();
+                
+                const pImg = document.getElementById('preview-img');
+                if(currentFileDataUrl) {
+                    pImg.src = currentFileDataUrl;
+                    pImg.style.display = 'block';
+                } else {
+                    pImg.style.display = 'none';
+                    pImg.src = '';
+                }
+            } else {
+                previewSection.style.display = 'none';
+            }
+        }
+
+        nameInput.addEventListener('input', updatePreview);
+        messageInput.addEventListener('input', updatePreview);
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    currentFileDataUrl = event.target.result;
+                    fileNameDisplay.textContent = file.name;
+                    fileNameDisplay.style.color = "var(--primary)";
+                    updatePreview(); 
+                };
+                reader.readAsDataURL(file);
+            } else {
+                currentFileDataUrl = null;
+                fileNameDisplay.textContent = "Attach Visual Fragment";
+                fileNameDisplay.style.color = "var(--text-muted)";
+                updatePreview();
+            }
+        });
+
+        function addMemory() {
+            const name = nameInput.value.trim();
+            const text = messageInput.value.trim();
+            
+            if(!name || (!text && !currentFileDataUrl)) {
+                alert("Please provide an identity and either a memory text or a visual fragment.");
+                return;
+            }
+
+            const newMem = { 
+                id: Date.now(), 
+                name: name, 
+                text: text, 
+                image: currentFileDataUrl,
+                date: getCurrentDateTime() 
+            };
+            
+            memories.push(newMem);
+            
+            try {
+                localStorage.setItem('aether_memories', JSON.stringify(memories));
+            } catch (e) {
+                alert("Storage limit reached! Please delete some old memories to add new ones.");
+                memories.pop(); 
+                return;
+            }
+            
+            render();
+            
+            messageInput.value = '';
+            fileInput.value = '';
+            currentFileDataUrl = null;
+            fileNameDisplay.textContent = "Attach Visual Fragment";
+            fileNameDisplay.style.color = "var(--text-muted)";
+            previewSection.style.display = 'none';
+        }
+
+        function deleteMemory(event, id) {
+            event.stopPropagation(); 
+            memories = memories.filter(m => m.id !== id);
+            localStorage.setItem('aether_memories', JSON.stringify(memories));
+            render();
+        }
+
+        function openModal(id) {
+            const mem = memories.find(m => m.id === id);
+            if(!mem) return;
+
+            const modalImg = document.getElementById('modal-img-full');
+            if(mem.image) {
+                modalImg.src = mem.image;
+                modalImg.style.display = 'block';
+            } else {
+                modalImg.src = '';
+                modalImg.style.display = 'none';
+            }
+
+            document.getElementById('modal-text-full').innerHTML = mem.text ? `"${mem.text}"` : '';
+            document.getElementById('modal-name-full').textContent = `@${mem.name.toUpperCase()}`;
+            document.getElementById('modal-date-full').textContent = mem.date;
+
+            fullModal.style.display = 'flex';
+            setTimeout(() => fullModal.classList.add('active'), 10);
+        }
+
+        function closeModal(event) {
+            if(event) event.stopPropagation();
+            fullModal.classList.remove('active');
+            setTimeout(() => fullModal.style.display = 'none', 300);
+        }
+
+        function render() {
+            const wall = document.getElementById('wall');
+            wall.innerHTML = '';
+            
+            memories.slice().reverse().forEach((m, i) => {
+                const card = document.createElement('div');
+                card.className = 'memory-card animate-in';
+                card.style.animationDelay = (Math.min(i * 0.1, 1.5)) + 's'; 
+                card.onclick = () => openModal(m.id);
+                
+                let imageElement = m.image ? `<img src="${m.image}" class="memory-image" style="display:block;" alt="Memory Segment">` : '';
+                let textElement = m.text ? `<div class="card-text">"${m.text}"</div>` : '';
+
+                card.innerHTML = `
+                    <button class="btn-delete" onclick="deleteMemory(event, ${m.id})" title="Delete Memory">✕</button>
+                    ${imageElement}
+                    ${textElement}
+                    <div class="card-footer">
+                        <span style="font-weight:700; color: var(--primary);">@${m.name.toUpperCase()}</span>
+                        <span style="opacity:0.5; font-family: monospace;">${m.date || 'DATALINKED'}</span>
+                    </div>
+                `;
+                wall.appendChild(card);
+            });
+        }
+
+        render();
+    </script>
+</body>
+</html>
